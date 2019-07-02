@@ -15,7 +15,7 @@
 #include <unistd.h>
 #include "sw_encoding_package.h"
 
-char g_send_file_name[50]; //存放发送的文件名称
+char g_send_file_name[1024]; //存放发送的文件名称
 
 
 /*
@@ -73,7 +73,8 @@ void *sw_socket_pthread_func(void *arg)
 		printf("服务器发送进度提示: 总大小:%d字节,已发送:%d字节,百分比:%.0f%%\n",rxtx_data.file_size,send_ok_byte,send_ok_byte/1.0/rxtx_data.file_size*100.0);
 							
 SEND_SRC_DATA: //触发重发数据的标签
-		write(tcp_client_fd,&rxtx_data,sizeof(struct sw_socket_package_data)); //发送数据
+		//向tcp_client_fd发送数据
+		write(tcp_client_fd,&rxtx_data,sizeof(struct sw_socket_package_data)); 
 		
 		/*计算接收的速度*/
 		time1=time(NULL);   //获取时间1
@@ -105,7 +106,7 @@ WAIT_ACK: //触发继续等待客户端应答
 		FD_SET(tcp_client_fd,&readfds);
 		timeout.tv_sec=5;  //超时时间
 		timeout.tv_usec=0;
-		
+		//监测文件操作集合是否有读事件产生
 		select_state=select(tcp_client_fd+1,&readfds,NULL,NULL,&timeout);
 		if(select_state>0)//表示有事件产生
 		{
@@ -171,7 +172,7 @@ TCP服务器创建
 int main(int argc,char **argv)
 {
 	int tcp_server_fd;       //服务器套接字描述符
-	int *tcp_client_fd=NULL; //客户端套接字描述符
+	int tcp_client_fd; //客户端套接字描述符
 	struct sockaddr_in tcp_server;
 	struct sockaddr_in tcp_client;
 	socklen_t tcp_client_addrlen=0;
@@ -245,8 +246,8 @@ int main(int argc,char **argv)
 	{
 		tcp_client_addrlen=sizeof(struct sockaddr);
 		// tcp_client_fd=malloc(sizeof(int)); //申请空间
-		*tcp_client_fd=accept(tcp_server_fd,(struct sockaddr *)&tcp_client,&tcp_client_addrlen);
-		if(*tcp_client_fd<0)
+		tcp_client_fd=accept(tcp_server_fd,(struct sockaddr *)&tcp_client,&tcp_client_addrlen);
+		if(tcp_client_fd<0)
 		{
 			printf("TCP服务器:等待客户端连接失败!\n");
 		}
@@ -255,7 +256,7 @@ int main(int argc,char **argv)
 			//打印连接的客户端地址信息
 		    printf("客户端上线: %s:%d\n",inet_ntoa(tcp_client.sin_addr),ntohs(tcp_client.sin_port));
 			/*1. 创建线程*/
-			if(pthread_create(&thread_id,NULL,sw_socket_pthread_func,(void*)tcp_client_fd)==0)
+			if(pthread_create(&thread_id,NULL,sw_socket_pthread_func,(void*)&tcp_client_fd)==0)
 			{
 				/*2. 设置分离属性，让线程结束之后自己释放资源*/
 				pthread_detach(thread_id);

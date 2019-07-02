@@ -60,7 +60,7 @@ int readch();
 // int video_pid=641;
 
 //sw_parse参数
-#define TS_PATH "/home/sw_tcp_iframe/shoes.ts" //TS文件的绝对路径
+#define TS_PATH "/root/recv/shoes.ts" //TS文件的绝对路径
 //读一个TS流的packet
 void read_ts_packet(FILE *file_handle,unsigned char *packet_buf,int len); 
 //分析TS流，并找出PAT的PID和PAT的table
@@ -391,6 +391,7 @@ int sw_ts_to_pes(char *tsfile,char *pesfile,unsigned short pid)
 //提取ES
 int sw_pes_to_es( char *pesfile, char *esfile )
 {
+	//定义文件描述符
 	FILE *fpd, *fp;
 	unsigned char *p, *payload, *tmp;
 	int size, num, rdsize;
@@ -414,60 +415,60 @@ int sw_pes_to_es( char *pesfile, char *esfile )
 	
 	while(1)
 	{
-	REDO:
-	if( mbuff + size <= p )
-	{
-		p = mbuff;
-		size = 0;
-	}
-	else if( mbuff < p && p < mbuff + size )
-	{
-		size -= p - mbuff;
-		memmove(mbuff, p, size );
-		p = mbuff;
-	}
-	
-	if( !feof(fp) && size < sizeof(mbuff) )
-	{
-		rdsize = fread( mbuff+size, 1, sizeof(mbuff)-size, fp );
-		size += rdsize;
-		total += rdsize;
-	}
-	if( size <= 0 )
-		break;
-	
-	tmp = p;
-	// 寻找PES-HEADER: 0X000001E0 
-	while( p[0] != 0 || p[1] != 0 || p[2] != 0x01 ||
-			( ( p[3] & 0xe0 ) != 0xe0 ))
-	{
-		p++;
+		REDO:
 		if( mbuff + size <= p )
-			goto REDO;
-	}
-	// PES_packet_Lenghtgth 
-	Lenght = (p[4]<<8) | p[5];
-	if( Lenght == 0 )
-	{
-		unsigned char *end = p + 6;
-		while( end[0] != 0 || end[1] != 0 || end[2] != 0x01 ||( ( end[3] & 0xe0 ) != 0xe0 ) )
 		{
-			if( mbuff + size <= end )
-			{
-				if( feof(fp) )
-					break;	
-				goto REDO;
-			}
-			end++;
+			p = mbuff;
+			size = 0;
 		}
-		Lenght = end - p - 6;
-	}
-	if( mbuff + size < p + 6 + Lenght )
-	{
-		if( feof(fp) )
+		else if( mbuff < p && p < mbuff + size )
+		{
+			size -= p - mbuff;
+			memmove(mbuff, p, size );
+			p = mbuff;
+		}
+		
+		if( !feof(fp) && size < sizeof(mbuff) )
+		{
+			rdsize = fread( mbuff+size, 1, sizeof(mbuff)-size, fp );
+			size += rdsize;
+			total += rdsize;
+		}
+		if( size <= 0 )
 			break;
-		continue;
-	}
+		
+		tmp = p;
+		// 寻找PES-HEADER: 0X000001E0 
+		while( p[0] != 0 || p[1] != 0 || p[2] != 0x01 ||
+				( ( p[3] & 0xe0 ) != 0xe0 ))
+		{
+			p++;
+			if( mbuff + size <= p )
+				goto REDO;
+		}
+		// PES_packet_Lenghtgth 
+		Lenght = (p[4]<<8) | p[5];
+		if( Lenght == 0 )
+		{
+			unsigned char *end = p + 6;
+			while( end[0] != 0 || end[1] != 0 || end[2] != 0x01 ||( ( end[3] & 0xe0 ) != 0xe0 ) )
+			{
+				if( mbuff + size <= end )
+				{
+					if( feof(fp) )
+						break;	
+					goto REDO;
+				}
+				end++;
+			}
+			Lenght = end - p - 6;
+		}
+		if( mbuff + size < p + 6 + Lenght )
+		{
+			if( feof(fp) )
+				break;
+			continue;
+		}
 		p += 6;
 		p++;
 		PTS_DTS_flags = (*p>>6)&0x3;
@@ -904,8 +905,7 @@ int main(int argc,char **argv)
 	rx_p=(char*)&rxtx_data; //指针
 	rx_size=sizeof(struct sw_socket_package_data);
 	all_size=0;
-	//设置标准输入为非阻塞
-	//fcntl(	)
+
 	while(1)
 	{
 		// signal(SIGINT,sighandler2);
@@ -923,11 +923,7 @@ int main(int argc,char **argv)
 				}
 			}
 		}
-		// else if(ch=='q')
-		// {
-		// 	pthread_join(thread_id,NULL);
-		// 	return -1;
-		// }
+
 		/*5.1 清空文件操作集合*/
 		FD_ZERO(&readfds);
         /*5.2 添加要监控的文件描述符*/
@@ -981,6 +977,8 @@ int main(int argc,char **argv)
 									strcpy(file_name,argv[3]); //拷贝路径  /123/456.c
 									strcat(file_name,rxtx_data.file_name); //文件名称
 									new_file=fopen(file_name,"wb"); //创建文件
+									printf("filename=%s\n",file_name);
+
 									if(new_file==NULL)
 									{
 										printf("客户端提示: %s 文件创建失败!\n",file_name);
@@ -1043,7 +1041,8 @@ int main(int argc,char **argv)
 				if(rx_cnt==0)
 				{
 					printf("客户端提示:服务器已经断开连接!\n");
-					fclose(new_file);
+					if(new_file != NULL)
+						fclose(new_file);
 					break;
 				}
 			}

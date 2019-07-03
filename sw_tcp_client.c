@@ -107,8 +107,8 @@ void read_ts_packet(FILE *file_handle,unsigned char *packet_buf,int len)
 //解析TS包
 int parse_ts(unsigned char *buffer,int file_size)
 {
-    unsigned char *temp = buffer;
-    short pat_pid;
+    unsigned char *temp = buffer;//
+    short pat_pid;//保存pat表的pid值
     int i = 0;
 
     if(buffer[0] != 0x47)
@@ -727,19 +727,22 @@ int readch()
 //检测按键是否按下 线程处理函数
 void *sw_key_scan(void *arg)
 {
+	//初始化键盘
 	init_keyboard();
+	// 轮询是否有按键按下
 	while(1)
 	{
-		while(ch != 'q')
-		{
-			// printf("looping\n");
+		// while(ch != 'q')
+		// {
+		// 	// printf("looping\n");
 			sleep(1);
+			//如果按键按下，读值到ch
 			if(kbhit())
 			{
 				ch = readch();	
 				printf("you hit %c\n",ch);
 			}
-		}
+		// }
 	}
 	// close_keyboard();
 	exit(0);
@@ -1053,7 +1056,7 @@ int main(int argc,char **argv)
 			break;
 		}
 	}
-	shutdown(tcp_client_fd,SHUT_WR);  //TCP半关闭，保证缓冲区内的数据全部写完
+	// shutdown(tcp_client_fd,SHUT_WR);  //TCP半关闭，保证缓冲区内的数据全部写完
 	//提取video_pid
 	sw_find_video_pid();	
 	//提取I帧
@@ -1065,7 +1068,7 @@ ERROR:
 	/*4. 关闭连接*/
 	//close(tcp_client_fd);
 	shutdown(tcp_client_fd,SHUT_WR);  //TCP半关闭，保证缓冲区内的数据全部写完
-
+	close_keyboard();//关闭按键
 	return 0;
 }
 

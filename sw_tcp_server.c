@@ -32,7 +32,7 @@ void *sw_socket_pthread_func(void *arg)
 	struct timeval timeout;            	 //select超时时间值
 	int select_state; 				   	 //接收select返回值
 	int tcp_client_fd=*(int*)arg;      //客户端套接字描述符
-	free(arg);      			       //释放占用的空间
+	// free(arg);      			       //释放占用的空间
 	
 	//计算接收速度
 	time_t time1;   //时间1

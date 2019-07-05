@@ -3,10 +3,10 @@ OPS= sw_tcp_server.c sw_encoding_package.c
 CLIENT=sw_tcp_client.c sw_encoding_package.c 
 
 tcp_server:$(OPS)
-	$(CC) $(OPS) -pthread -o tcp_server
+	$(CC) $(OPS) -g -pthread -o  tcp_server
 
 tcp_client:$(CLIENT)
-	$(CC) $(CLIENT) -pthread -o tcp_client
+	$(CC) $(CLIENT) -g -pthread -o  tcp_client
 
 clean:
 	rm -rf *.o tcp_server tcp_client
